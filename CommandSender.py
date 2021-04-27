@@ -9,8 +9,8 @@ MQTT_BROKER = 'mqtt.item.ntnu.no'
 MQTT_PORT = 1883
 
 # TODO: choose proper topics for communication
-MQTT_TOPIC_OUTPUT = 'ttm4175/team_15/answer'
-MQTT_TOPIC_INPUT = 'ttm4175/team_15/walkie1'
+MQTT_TOPIC_OUTPUT = 'ttm4175/team_15/answer_debug'
+MQTT_TOPIC_INPUT = 'ttm4175/team_15/walkie1_debug'
 
 
 class CommandSenderComponent:
@@ -63,10 +63,17 @@ class CommandSenderComponent:
 
         self.app.startLabelFrame('Sending messages:')
         def on_button_pressed_send(title):
-            text = input("Enter your message: ") #debug solution
-            command = {"command": "send_message", "text": text}
+            command = {"command": "send_message"}
+            publish_command(command)
+        def on_button_pressed_record(title):
+            command = {"command": "start_recording"}
+            publish_command(command)
+        def on_button_pressed_stop_record(title):
+            command = {"command": "stop_recording"}
             publish_command(command)
         self.app.addButton('Send message', on_button_pressed_send)
+        self.app.addButton('Record the message', on_button_pressed_record)
+        self.app.addButton('Stop the recording', on_button_pressed_stop_record)
         self.app.stopLabelFrame()
 
         self.app.startLabelFrame('Choosing a channel:')
