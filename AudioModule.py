@@ -6,9 +6,13 @@ import time
 import pyaudio
 import wave
 
+#standard values
 FILENAME = "output_tmp.wav"
-        
-
+CHANNELS = 2
+SAMPLEFORMAT = pyaudio.paInt16
+CHUNK = 1024
+SMAPLEFREQUENCY = 44100        
+SAMPLEWIDTH = pyaudio.get_sample_size(pyaudio.paInt16)
 
 class Recorder:
     def __init__(self):
@@ -54,7 +58,7 @@ class Recorder:
         print('Done processing')
 
     def getFrames(self):
-        return self.frames()
+        return self.frames
 
 """
 Helper class for recording Audio. 
@@ -86,7 +90,7 @@ class Recording_Helper:
         s_recording = {'name': 'recording', 'do': 'record()', "stop": "stop()"}
         s_processing = {'name': 'processing', 'do': 'process()'}
 
-        self.stm_recording = Machine(name='stm_recording', transitions=[t0, t1, t2, t3], states=[s_recording, s_processing], obj=self.recorder)
+        self.stm_recording = Machine(name='stm_recording', transitions=[t0, t1, t2], states=[s_recording, s_processing], obj=self.recorder)
         self.recorder.stm = self.stm_recording
         self.driver = Driver()
         self.driver.add_machine(self.stm_recording)
@@ -104,18 +108,19 @@ class Recording_Helper:
     def get_filename(self):
         #Returns the filename that is used for temp storage
         return FILENAME
+
     def get_recorded_samples(self):
         return self.recorder.getFrames()
 
 
-def process(self, data):
+def process(data):
         print("processing")
         # Save the recorded data as a WAV file
         wf = wave.open(FILENAME, 'wb')
-        wf.setnchannels(self.channels)
-        wf.setsampwidth(self.p.get_sample_size(self.sample_format))
-        wf.setframerate(self.fs)
-        wf.writeframes(b''.join(self.frames))
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(SAMPLEWIDTH)
+        wf.setframerate(SMAPLEFREQUENCY)
+        wf.writeframes(b''.join(data))
         wf.close()
         print('Done processing')
 
@@ -124,28 +129,28 @@ class Player:
     def __init__(self):
         pass
         
-    def play(self):
-        # Set chunk size of 1024 samples per data frame
-        chunk = 1024  
+    def play(self): 
 
         # Open the sound file 
-        wf = wave.open(filename, 'rb')
+        wf = wave.open(FILENAME, 'rb')
 
         # Create an interface to PortAudio
         p = pyaudio.PyAudio()
 
         # Open a .Stream object to write the WAV file to
         # 'output = True' indicates that the sound will be played rather than recorded
-        stream = p.open(format = SAMPWIDTH,
-                        channels = CHANNELS,
-                        rate = FRAMERATE,
+        stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
+                        channels = wf.getnchannels(),
+                        rate = wf.getframerate(),
                         output = True)
-        chunked_data = data[0:1024]
+
+        # Read data in chunks
+        data = wf.readframes(CHUNK)
+
         # Play the sound by writing the audio data to the stream
         while data != '':
-            stream.write(chunked_data)
-            
-            data = wf.readframes(chunk)
+            stream.write(data)
+            data = wf.readframes(CHUNK)
 
         # Close and terminate the stream
         stream.close()
@@ -159,24 +164,24 @@ class Player:
 class PlayAudio_Helper:
     def __init__(self):
         
-        player = Player()
+        self.player = Player()
                 
         t0 = {'source': 'initial', 'target': 'ready'}
         t1 = {'trigger': 'start', 'source': 'ready', 'target': 'playing'}
 
         s_playing = {'name': 'playing', 'do': 'play()'}
 
-        stm_player = Machine(name='stm_player', transitions=[t0, t1, t2], states=[s_playing], obj=player)
-        player.stm = stm_player
+        self.stm_player = Machine(name='stm_player', transitions=[t0, t1], states=[s_playing], obj=self.player)
+        self.player.stm = self.stm_player
 
-        driver = Driver()
-        driver.add_machine(stm_player)
+        self.driver = Driver()
+        self.driver.add_machine(self.stm_player)
     
-    def play(self, data):
+    def play(self):
         
-        driver.start()
+        self.driver.start()
 
         print("driver started")
 
-        driver.send('start', 'stm')
-        driver.stop()
+        self.driver.send('start', 'stm_player')
+        self.driver.stop()
