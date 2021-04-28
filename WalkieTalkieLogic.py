@@ -15,7 +15,8 @@ MQTT_TOPIC_COMMANDSENDER = 'ttm4175/team_15/answer_debug'
 
 channel = ''
 state = 'idle'
-message_count = 1
+
+AUDIO_FILE_DIR = 'Strd_Msg'
 
 class WalkieLogic:
     """
@@ -64,7 +65,7 @@ class WalkieLogic:
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
         
-        self.message_count = 1
+        self.message_count = 0
         self.state = 'idle'
         self.last_message_content = ''
         self.list_of_messages= []
@@ -82,19 +83,16 @@ class WalkieLogic:
         self._logger.debug('MQTT connected to {}'.format(client))
         
     def store_message(self, message):
-        save_path = '\Komsys-files'
-        file_name = 'message_' + self.message_count + ".wav"
+        file_name = AUDIO_FILE_DIR + '\message_' + str(self.message_count) + ".wav"
         
-        f = open(os.path.join(save_path, file_name), 'w')
-        f.write(message)
-        f.close()
+        AudioModule.process_audio(message, file_name)
         self.list_of_messages.append(file_name)
-        message_count += 1
+        self.message_count += 1
     
     def send_message(self, payload, channel):
         try:
-            topic = 'ttm4175/team_15/walkie' + channel
-            payload = json.dumps(payload)
+            topic = 'ttm4175/team_15/walkie' + channel + '_debug'
+            #payload = json.dumps(payload)
             self.mqtt_client.publish(topic, payload, qos = 2)
         except Exception as e:
             print(e)
@@ -134,9 +132,9 @@ class WalkieLogic:
     def playback_message(self):
         self.state = 'playback_message'
         print('State walkie ' + self.name + ': playback_message')
-        message = self.last_message_content.get('message')
+        message = self.last_message_content
         AudioModule.process_audio(message)
-        self.audioHelper.play_audio('output.wav')
+        self.audioHelper.play_audio(AudioModule.FILENAME)
         self.stm.send('message_played') #TODO Message is not yet completely played here
         
     
@@ -176,11 +174,13 @@ class WalkieLogic:
         # encdoding from bytes to string.
         try:
             payload = json.loads(msg.payload.decode("utf-8"))
+            
         except Exception as err:
-            self._logger.error('Message sent to topic {} had no valid JSON. Message ignored. {}'.format(msg.topic, err))
-            return
-        
+            payload = {'command' : 'message_received', 'message' : msg.payload}
+            #self._logger.error('Message sent to topic {} had no valid JSON. Message ignored. {}'.format(msg.topic, err))
+            #return
         command = payload.get('command')
+        
         
         if self.state == 'idle':
 
@@ -200,7 +200,7 @@ class WalkieLogic:
                 
             elif command == 'message_received':
                 try:
-                    self.last_message_content = payload
+                    self.last_message_content = payload.get('message')
                     self.stm.send('message_received')
                 except Exception as err:
                     self._logger.error('Invalid arguments to command. {}'.format(err))
@@ -235,9 +235,9 @@ class WalkieLogic:
             elif command == 'stop_recording':
                 print("Stopping the recording from main logic")
                 self.audioHelper.stop_recording()
-                time.sleep(1)
+                #time.sleep(1)
                 record = self.audioHelper.get_recorded_samples()
-                payload = {'command': 'message_received', 'message': record}
+                payload = record#{'command': 'message_received', 'message': record}
                 self.send_message(payload, self.channel)
                 self.stm.send('done_recording')
                 return
@@ -252,18 +252,18 @@ class WalkieLogic:
 
         elif self.state == 'playback_message':
             if self.check_emergency(payload):
-                store_message(self.last_message_content)
+                self.store_message(self.last_message_content)
                 return
 
         elif self.state == 'message_received':
             if self.check_emergency(payload):
-                store_message(self.last_message_content)
+                self.store_message(self.last_message_content)
                 return
 
             else:
                 print('Command in message is {}'.format(command))
                 if command == 'listen_later':
-                    store_message(self.last_message_content)
+                    self.store_message(self.last_message_content)
                     print('Message stored for later')
                     self.stm.send('listen_later')
                 
