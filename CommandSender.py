@@ -3,37 +3,21 @@ import logging
 from threading import Thread
 import json
 from appJar import gui
+import AudioModule
 
 # MQTT broker address
 MQTT_BROKER = 'mqtt.item.ntnu.no'
 MQTT_PORT = 1883
 
 # TODO: choose proper topics for communication
-MQTT_TOPIC_OUTPUT = 'ttm4175/team_15/answer_debug'
-MQTT_TOPIC_INPUT = 'ttm4175/team_15/walkie1_debug'
+MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/answer'
+MQTT_TOPIC_INPUT = 'ttm4115/team_15/walkie1'
 
 
-class CommandSenderComponent:
+class CommandSenderComponent: 
     """
     The component to send voice commands.
     """
-    dummy_channel = "dummy"
-    def on_connect(self, client, userdata, flags, rc):
-        # we just log that we are connected
-        self._logger.debug('MQTT connected to {}'.format(client))
-
-    def on_message(self, client, userdata, msg):
-        # encdoding from bytes to string. This
-        try:
-            payload = json.loads(msg.payload.decode("utf-8"))
-        except Exception as err:
-            self._logger.error('Message sent to topic {} had no valid JSON. Message ignored. {}'.format(msg.topic, err))
-            return
-
-        command = payload.get('command')
-        if command == 'text':
-            print(payload.get('message'))
-
     def __init__(self):
         # get the logger object for the component
         self._logger = logging.getLogger(__name__)
@@ -51,9 +35,29 @@ class CommandSenderComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_OUTPUT)
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
+        self.audioHelper = AudioModule.AudioHelper()
 
         self.create_gui()
 
+
+    def on_connect(self, client, userdata, flags, rc):
+        # we just log that we are connected
+        self._logger.debug('MQTT connected to {}'.format(client))
+
+    def on_message(self, client, userdata, msg):
+        # encdoding from bytes to string. This
+        try:
+            payload = json.loads(msg.payload.decode("utf-8"))
+        except Exception as err:
+            self._logger.error('Message sent to topic {} had no valid JSON. Message ignored. {}'.format(msg.topic, err))
+            return
+
+        command = payload.get('command')
+        if command == 'text':
+            print(payload.get('message'))
+            self.audioHelper.text_to_speech(payload.get('message')) #tried to implement text-to-speach
+
+    
     def create_gui(self):
         self.app = gui()
         def publish_command(command):
@@ -107,7 +111,7 @@ class CommandSenderComponent:
             command = {"command": "playback"}
             publish_command(command)
         def on_button_pressed_delete_messages(title):
-            command = {"command": "delete_messages"}
+            command = {"command": "delete_stored"}
             publish_command(command)
         self.app.addButton('Playback stored messages', on_button_pressed_play_messages)
         self.app.addButton('Delete stored messages', on_button_pressed_delete_messages)
@@ -147,4 +151,4 @@ formatter = logging.Formatter('%(asctime)s - %(name)-12s - %(levelname)-8s - %(m
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-#t = CommandSenderComponent()
+CommandSenderComponent()
