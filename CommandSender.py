@@ -60,8 +60,8 @@ class CommandSenderComponent:
     
     def create_gui(self):
         self.app = gui("Walkie Talkie")
-        self.app.setBg("SkyBlue")
-        self.app.setFg("Azure")
+        self.app.setBg("PowderBlue")
+        self.app.setFg("LightCyan")
         def publish_command(command):
             payload = json.dumps(command)
             self._logger.info(command)
@@ -77,9 +77,13 @@ class CommandSenderComponent:
         def on_button_pressed_stop_record(title):
             command = {"command": "stop_recording"}
             publish_command(command)
+        self.app.startFrame("LEFT1", row=0, column=0)
         self.app.addButton('Send message', on_button_pressed_send)
+        self.app.stopFrame()
+        self.app.startFrame("RIGHT1", row=0, column=1)
         self.app.addButton('Record the message', on_button_pressed_record)
         self.app.addButton('Stop the recording', on_button_pressed_stop_record)
+        self.app.stopFrame()
         self.app.stopLabelFrame()
 
         self.app.startLabelFrame('Choosing a channel:')
@@ -103,10 +107,13 @@ class CommandSenderComponent:
         def on_button_pressed_emergency(title):
             command = {"command": "emergency_broadcast"}
             publish_command(command)
+        self.app.addButton('Send Emergency Broadcast', on_button_pressed_emergency)
+        self.app.stopLabelFrame()
+
+        self.app.startLabelFrame('Abort your action:')
         def on_button_pressed_emergency_abort(title):
             command = {"command": "abort"}
             publish_command(command)
-        self.app.addButton('Send Emergency Broadcast', on_button_pressed_emergency)
         self.app.addButton('Abort', on_button_pressed_emergency_abort)
         self.app.stopLabelFrame()
 
