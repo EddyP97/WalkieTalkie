@@ -9,19 +9,15 @@ import AudioModule
 MQTT_BROKER = 'mqtt.item.ntnu.no'
 MQTT_PORT = 1883
 
-# TODO: choose proper topics for communication
-MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/answer'
-MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie'
 
-
-class CommandSenderComponent: 
+class CommandSenderComponent:
     """
     The component to send voice commands.
     """
+    
     def __init__(self, walkieNumber):
-
-        MQTT_TOPIC_OUTPUT = MQTT_TOPIC_OUTPUT + walkieNumber
-        MQTT_TOPIC_WALKIE = MQTT_TOPIC_WALKIE + walkieNumber
+        self.MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/answer' + walkieNumber
+        self.MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie' + walkieNumber
 
         # get the logger object for the component
         self._logger = logging.getLogger(__name__)
@@ -36,7 +32,7 @@ class CommandSenderComponent:
         self.mqtt_client.on_message = self.on_message
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-        self.mqtt_client.subscribe(MQTT_TOPIC_OUTPUT)
+        self.mqtt_client.subscribe(self.MQTT_TOPIC_OUTPUT)
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
         self.audioHelper = AudioModule.AudioHelper()
@@ -67,7 +63,7 @@ class CommandSenderComponent:
         def publish_command(command):
             payload = json.dumps(command)
             self._logger.info(command)
-            self.mqtt_client.publish(MQTT_TOPIC_WALKIE, payload=payload, qos=2)
+            self.mqtt_client.publish(self.MQTT_TOPIC_WALKIE, payload=payload, qos=2)
 
         self.app.startLabelFrame('Sending messages:')
         def on_button_pressed_send(title):
