@@ -11,14 +11,18 @@ MQTT_PORT = 1883
 
 # TODO: choose proper topics for communication
 MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/answer'
-MQTT_TOPIC_INPUT = 'ttm4115/team_15/walkie1'
+MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie'
 
 
 class CommandSenderComponent: 
     """
     The component to send voice commands.
     """
-    def __init__(self):
+    def __init__(self, walkieNumber):
+
+        MQTT_TOPIC_OUTPUT = MQTT_TOPIC_OUTPUT + walkieNumber
+        MQTT_TOPIC_WALKIE = MQTT_TOPIC_WALKIE + walkieNumber
+
         # get the logger object for the component
         self._logger = logging.getLogger(__name__)
         print('logging under name {}.'.format(__name__))
@@ -63,7 +67,7 @@ class CommandSenderComponent:
         def publish_command(command):
             payload = json.dumps(command)
             self._logger.info(command)
-            self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=2)
+            self.mqtt_client.publish(MQTT_TOPIC_WALKIE, payload=payload, qos=2)
 
         self.app.startLabelFrame('Sending messages:')
         def on_button_pressed_send(title):
@@ -151,4 +155,4 @@ formatter = logging.Formatter('%(asctime)s - %(name)-12s - %(levelname)-8s - %(m
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-CommandSenderComponent()
+#CommandSenderComponent()
