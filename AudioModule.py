@@ -55,16 +55,11 @@ class Recorder:
     def getFrames(self):
         return self.frames
 
-"""
-Helper class for recording Audio. 
-Stores recorded Audio in standard temp file
-Filename can be retrieved with get_filename()
-Example code on how to use it:
-"""
 
 def process_audio(data, filename = FILENAME):
-        print("Processing")
-        # Save the recorded data as a WAV file
+        """ Saves the recorded samples stored in data in a .wav file with the name filename
+            Default filename is used for just temporaray storage, will be overwritten
+            next time the funtion is called without a filename parameter  """
         wf = wave.open(filename, 'wb')
         wf.setnchannels(CHANNELS)
         p = pyaudio.PyAudio()
@@ -72,14 +67,11 @@ def process_audio(data, filename = FILENAME):
         wf.setframerate(SAMPLEFREQUENCY)
         wf.writeframes(data)
         wf.close()
-        print('Done processing')
-
         
 class Player:
     def __init__(self):
         self.playing = True        
     def play(self, filename): 
-        print("Playing the audio ")
         # Open the sound file 
         wf = wave.open(filename, 'rb')
 
@@ -100,8 +92,6 @@ class Player:
         while (data != b'') and self.playing:
             stream.write(data)
             data = wf.readframes(CHUNK)
-            #print('playing...')
-        print('done playing audio')
         # Close and terminate the stream
         stream.close()
         p.terminate()
@@ -139,10 +129,8 @@ class AudioHelper:
         t0_r = {'source': 'initial', 'target': 'ready'}
         t1_r = {'trigger': 'start_recording', 'source': 'ready', 'target': 'recording'}
         t2_r = {'trigger': 'done', 'source': 'recording', 'target': 'ready'}
-        #t3_r = {'trigger' : 'done', 'source' : 'stopped_recording', 'target' : 'ready'}
         s_ready = {'name': 'ready'}
         s_recording = {'name': 'recording', 'do': 'record()', "stop" : "stop_recording()"}
-        #s_stopped_recording = {'name': 'stopped_recording'}
         self.stm_recording = Machine(name='stm_recording', transitions=[t0_r, t1_r, t2_r], states=[s_ready, s_recording], obj=self.recorder)
         self.recorder.stm = self.stm_recording
 
@@ -161,16 +149,13 @@ class AudioHelper:
         self.driver.add_machine(self.stm_recording)
         self.driver.add_machine(self.stm_player)
         self.driver.add_machine(self.stm_speaker)
-        print('Driver created')
         self.driver.start()
+        print('Audio Module ready')
     
     def play_audio(self, filename):
-        print("driver started")
         self.stm_player.send('start', args = [filename])
-        print("sent start audio signal playing")
 
     def play_audio_noStm(self, filename): 
-        print("Playing the audio ")
         # Open the sound file 
         wf = wave.open(filename, 'rb')
 
@@ -191,8 +176,6 @@ class AudioHelper:
         while (data != b''): #and self.playing:
             stream.write(data)
             data = wf.readframes(CHUNK)
-            #print('playing...')
-        print('done playing audio')
         # Close and terminate the stream
         stream.close()
         p.terminate()
@@ -209,16 +192,11 @@ class AudioHelper:
     def stop_recording(self):
         self.stm_recording.send("stop")
 
-    def get_filename(self):
+    def get_tmp_filename(self):
         #Returns the filename that is used for temp storage
         return FILENAME
 
     def get_recorded_samples(self):
-        stms = []
-        #wtf
-        #for stm_id in self.driver._stms_by_id:
-        #    stms.append(self.driver._stms_by_id[stm_id])
-        #return stms[0]._obj.getFrames()
         return b''.join(self.stm_recording._obj.getFrames())
     
     def text_to_speech(self, text):
