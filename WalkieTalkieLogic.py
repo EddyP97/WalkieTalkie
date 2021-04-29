@@ -13,8 +13,9 @@ MQTT_PORT = 1883
 #list of walkies
 walkies = ['1','2','3','4','5','6']
 
-MQTT_TOPIC_WALKIE = ''
-MQTT_TOPIC_COMMANDSENDER = ''
+MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie'
+MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer'
+
 
 channel = ''
 state = 'idle'
@@ -44,8 +45,8 @@ class WalkieLogic:
         self.name = name
 
         # topics for communication
-        self.MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie' + name
-        self.MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer' + name
+        self.MQTT_TOPIC_WALKIE = MQTT_TOPIC_WALKIE + name
+        self.MQTT_TOPIC_COMMANDSENDER = MQTT_TOPIC_COMMANDSENDER + name
         
         # create a new MQTT client
         self._logger.debug('Connecting to MQTT broker {} at port {}'.format(MQTT_BROKER, MQTT_PORT))
@@ -115,9 +116,9 @@ class WalkieLogic:
 
         payload = json.dumps(message)
         self._logger.info(message)
-        for walkie in self.walkies:
+        for walkie in walkies:
             if walkie != self.name:
-                self.mqtt_client.publish(self.MQTT_TOPIC_WALKIE + walkie, payload=payload, qos=2)
+                self.mqtt_client.publish(MQTT_TOPIC_WALKIE + walkie, payload=payload, qos=2)
         
 
     def prompt_listen(self):
