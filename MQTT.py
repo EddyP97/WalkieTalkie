@@ -1,19 +1,6 @@
 import paho.mqtt.client as mqtt
 
 class MQTT_Client:
-    """
-    The component to manage named timers in a voice assistant.
-    This component connects to an MQTT broker and listens to commands.
-    To interact with the component, do the following:
-    * Connect to the same broker as the component. You find the broker address
-    in the value of the variable `MQTT_BROKER`.
-    * Subscribe to the topic in variable `MQTT_TOPIC_OUTPUT`. On this topic, the
-    component sends its answers.
-    * Send the messages listed below to the topic in variable `MQTT_TOPIC_INPUT`.
-        {"command": "new_timer", "name": "spaghetti", "duration":50}
-        {"command": "status_all_timers"}
-        {"command": "status_single_timer", "name": "spaghetti"}
-    """
 
     def on_connect(self, client, userdata, flags, rc):
         # we just log that we are connected
