@@ -96,19 +96,22 @@ class WalkieLogic:
 
     def playback_emergency(self):
         self.state = 'emergency_message_received'
-        print('State walkie ' + self.name + ': emergency_message_received')
+        #print('State walkie ' + self.name + ': emergency_message_received')
         self.audioHelper.text_to_speech(self.last_emergency_message)
         self.stm.send('message_played')
         
 
     def emergency_state(self):
         self.state = 'emergency_broadcasting'
-        print('State walkie ' + self.name + ': emergency_broadcasting')
+        msg = 'Sending emergency broadcast in 5 seconds!'
+        print(msg)
+        self.audioHelper.text_to_speech(msg)
+        #print('State walkie ' + self.name + ': emergency_broadcasting')
         
     
     def idle_state(self):
         self.state = 'idle'
-        print('State walkie ' + self.name + ': idle')
+        #print('State walkie ' + self.name + ': idle')
     
     def send_emergency(self):
         #sending to the other walkie
@@ -120,14 +123,14 @@ class WalkieLogic:
 
     def prompt_listen(self):
         self.state = 'message_received'
-        print('State walkie ' + self.name + ': message_received')
+        #print('State walkie ' + self.name + ': message_received')
         message = {'command': 'text', 'message': 'You have received a message. Do you want to listen to it now?'}
         self.publish_command(message)
         
 
     def playback_message(self):
         self.state = 'playback_message'
-        print('State walkie ' + self.name + ': playback_message')
+        #print('State walkie ' + self.name + ': playback_message')
         message = self.last_message_content
         AudioModule.process_audio(message)
         self.audioHelper.play_audio(AudioModule.FILENAME)
@@ -136,7 +139,7 @@ class WalkieLogic:
     
     def listen_stored(self):
         self.state = 'playback_stored'
-        print('State walkie ' + self.name + ': playback_stored')
+        #print('State walkie ' + self.name + ': playback_stored')
 
         for msg in self.list_of_messages:
             self.audioHelper.play_audio_noStm(msg)
@@ -147,7 +150,7 @@ class WalkieLogic:
     
     def prompt_choose(self):
         self.state = 'choose_recipients'
-        print('State walkie ' + self.name + ': choose_recipients')
+        #print('State walkie ' + self.name + ': choose_recipients')
         try:
             message = {'command': 'text', 'message': 'What channel do you want to send to?'}
             self.publish_command(message)
@@ -157,7 +160,7 @@ class WalkieLogic:
 
     def prompt_record(self):
         self.state = 'record_message'
-        print('State walkie ' + self.name + ': record_message')
+        #print('State walkie ' + self.name + ': record_message')
         try:
             message = {'command': 'text', 'message': 'What is the message to send?'}
             self.publish_command(message)

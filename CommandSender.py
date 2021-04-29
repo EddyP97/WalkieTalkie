@@ -55,13 +55,15 @@ class CommandSenderComponent:
         command = payload.get('command')
         if command == 'text':
             print(payload.get('message'))
-            self.audioHelper.text_to_speech(payload.get('message')) #tried to implement text-to-speach
+            self.audioHelper.text_to_speech(payload.get('message')) #implementer text-to-speach
 
     
     def create_gui(self):
         self.app = gui("Walkie Talkie")
         self.app.setBg("PowderBlue")
         self.app.setFg("LightCyan")
+        self.app.setFont(size=14, family="Verdana")
+        self.app.setGuiPadding(35, 20)
         def publish_command(command):
             payload = json.dumps(command)
             self._logger.info(command)
@@ -128,7 +130,7 @@ class CommandSenderComponent:
         self.app.addButton('Delete stored messages', on_button_pressed_delete_messages)
         self.app.stopLabelFrame()
 
-        self.app.startLabelFrame('What do you want to do with the received message?:')
+        self.app.startLabelFrame('What do you want to do with the received message?')
         def on_button_pressed_listen_messages(title):
             command = {"command": "listen_to_message"}
             publish_command(command)

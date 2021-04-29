@@ -185,7 +185,7 @@ class AudioHelper:
 
     
     def start_recording(self):
-        print("driver started")
+        #print("driver started")
         self.last_record = []
         self.stm_recording.send('start_recording')
         
