@@ -5,6 +5,7 @@ import time
 
 import pyaudio
 import wave
+import pyttsx3
 
 #standard values
 FILENAME = "output_tmp.wav"
@@ -59,12 +60,10 @@ class Recorder:
 Helper class for recording Audio. 
 Stores recorded Audio in standard temp file
 Filename can be retrieved with get_filename()
-
 Example code on how to use it:
-
 """
 
-def process_audio(data, filename):
+def process_audio(data, filename = FILENAME):
         print("Processing")
         # Save the recorded data as a WAV file
         wf = wave.open(filename, 'wb')
@@ -108,9 +107,16 @@ class Player:
         stream.close()
         p.terminate()
 
-    def stop_playing():
+    def stop_playing(self):
         self.playing = False
 
+class Speaker:
+    def __init__(self):
+        self.engine = pyttsx3.init()
+
+    def speak(self, text):
+        self.engine.say(text)
+        self.engine.runAndWait()
 
 class AudioHelper:
     def __init__(self):
@@ -140,9 +146,22 @@ class AudioHelper:
         #s_stopped_recording = {'name': 'stopped_recording'}
         self.stm_recording = Machine(name='stm_recording', transitions=[t0_r, t1_r, t2_r], states=[s_ready, s_recording], obj=self.recorder)
         self.recorder.stm = self.stm_recording
+
+        self.speaker = Speaker()
+        t0_s = {'source': 'initial', 'target': 'ready'}
+        t1_s = {'trigger': 'speak', 'source': 'ready', 'target': 'speaking'}
+        t2_s = {'trigger': 'done', 'source': 'speaking', 'target': 'ready'}
+
+
+        s1_s = {'name': 'speaking', 'do': 'speak(*)', 'speak': 'defer'}
+
+        self.stm_speaker = Machine(name='stm_speaker', transitions=[t0_s, t1_s, t2_s], states=[s1_s], obj=self.speaker)
+        self.speaker.stm = self.stm_speaker
+
         self.driver = Driver()
         self.driver.add_machine(self.stm_recording)
         self.driver.add_machine(self.stm_player)
+        self.driver.add_machine(self.stm_speaker)
         print('Driver created')
         self.driver.start()
     
@@ -150,6 +169,34 @@ class AudioHelper:
         print("driver started")
         self.stm_player.send('start', args = [filename])
         print("sent start audio signal playing")
+
+    def play_audio_noStm(self, filename): 
+        print("Playing the audio ")
+        # Open the sound file 
+        wf = wave.open(filename, 'rb')
+
+        # Create an interface to PortAudio
+        p = pyaudio.PyAudio()
+
+        # Open a .Stream object to write the WAV file to
+        # 'output = True' indicates that the sound will be played rather than recorded
+        stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
+                        channels = wf.getnchannels(),
+                        rate = wf.getframerate(),
+                        output = True)
+
+        # Read data in chunks
+        data = wf.readframes(CHUNK)
+        #self.playing = True
+        # Play the sound by writing the audio data to the stream
+        while (data != b''): #and self.playing:
+            stream.write(data)
+            data = wf.readframes(CHUNK)
+            #print('playing...')
+        print('done playing audio')
+        # Close and terminate the stream
+        stream.close()
+        p.terminate()
 
     def stop_audio(self):
         self.stm_player.send('stop')
@@ -174,3 +221,6 @@ class AudioHelper:
         #    stms.append(self.driver._stms_by_id[stm_id])
         #return stms[0]._obj.getFrames()
         return b''.join(self.stm_recording._obj.getFrames())
+    
+    def text_to_speech(self, text):
+        self.stm_speaker.send('speak', args=[text])
