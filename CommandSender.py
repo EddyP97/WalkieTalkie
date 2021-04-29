@@ -59,7 +59,9 @@ class CommandSenderComponent:
 
     
     def create_gui(self):
-        self.app = gui()
+        self.app = gui("Walkie Talkie")
+        self.app.setBg("SkyBlue")
+        self.app.setFg("Azure")
         def publish_command(command):
             payload = json.dumps(command)
             self._logger.info(command)

@@ -7,7 +7,7 @@ from threading import Thread
 walkieNumber = ''
 
 def main():
-    walkieNumber = input('What is your worker number?')
+    walkieNumber = input('What is your worker number? ')
     # we start the stmpy driver and add 2 walkies
     stm_driver = stmpy.Driver()
     stm_driver.add_machine(WalkieLogic.create_machine(name = walkieNumber))

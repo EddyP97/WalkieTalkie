@@ -11,7 +11,7 @@ MQTT_BROKER = 'mqtt.item.ntnu.no'
 MQTT_PORT = 1883
 
 #list of walkies
-walkies = ['1','2','3','4','5','6']
+MQTT_TOPIC_EMERGENCY = 'ttm4115/team_15/emergency'
 
 MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie'
 MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer'
@@ -113,12 +113,9 @@ class WalkieLogic:
     def send_emergency(self):
         #sending to the other walkie
         message = {'command': 'emergency_received', 'message': "Worker " + self.name + " is in danger. Please send help!"}
-
         payload = json.dumps(message)
         self._logger.info(message)
-        for walkie in walkies:
-            if walkie != self.name:
-                self.mqtt_client.publish(MQTT_TOPIC_WALKIE + walkie, payload=payload, qos=2)
+        self.mqtt_client.publish(MQTT_TOPIC_EMERGENCY, payload=payload, qos=2)
         
 
     def prompt_listen(self):
@@ -156,7 +153,6 @@ class WalkieLogic:
             self.publish_command(message)
         except Exception as e:
             print(e)
-        
         return None
 
     def prompt_record(self):
