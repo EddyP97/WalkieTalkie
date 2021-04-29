@@ -58,6 +58,7 @@ class WalkieLogic:
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
         # subscribe to proper topic(s) of your choice
         self.mqtt_client.subscribe(self.MQTT_TOPIC_WALKIE)
+        self.mqtt_client.subscribe(MQTT_TOPIC_EMERGENCY)
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
         
