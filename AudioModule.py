@@ -34,7 +34,6 @@ class Recorder:
                 rate=self.fs,
                 frames_per_buffer=self.chunk,
                 input=True)
-        self.dummy_dummy = [7,8,9]
         self.recording = True
         self.frames = []
         while self.recording:
