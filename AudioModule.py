@@ -112,10 +112,10 @@ class AudioHelper:
         
         self.player = Player()
                 
-        t0_p = {'source': 'initial', 'target': 'ready'}
-        t1_p = {'trigger': 'start', 'source': 'ready', 'target': 'playing'}
-        t2_p = {'trigger': 'done', 'source': 'playing', 'target': 'ready'}
-        t3_p = {'trigger' : 'stop', 'source' : 'playing', 'target' : 'ready', 'effect' : 'stop_playing'}
+        t0_p = {'source': 'initial',                            'target': 'ready'}
+        t1_p = {'trigger': 'start',     'source': 'ready',      'target': 'playing'}
+        t2_p = {'trigger': 'done',      'source': 'playing',    'target': 'ready'}
+        t3_p = {'trigger' : 'stop',     'source' : 'playing',   'target' : 'ready',     'effect' : 'stop_playing'}
         
         s_ready = {'name': 'ready'}
         s_playing = {'name': 'playing', 'do': 'play(*)'}
@@ -126,18 +126,18 @@ class AudioHelper:
 
         self.recorder = Recorder()
                 
-        t0_r = {'source': 'initial', 'target': 'ready'}
-        t1_r = {'trigger': 'start_recording', 'source': 'ready', 'target': 'recording'}
-        t2_r = {'trigger': 'done', 'source': 'recording', 'target': 'ready'}
+        t0_r = {'source': 'initial',                                    'target': 'ready'}
+        t1_r = {'trigger': 'start_recording',   'source': 'ready',      'target': 'recording'}
+        t2_r = {'trigger': 'done',              'source': 'recording',  'target': 'ready'}
         s_ready = {'name': 'ready'}
         s_recording = {'name': 'recording', 'do': 'record()', "stop" : "stop_recording()"}
         self.stm_recording = Machine(name='stm_recording', transitions=[t0_r, t1_r, t2_r], states=[s_ready, s_recording], obj=self.recorder)
         self.recorder.stm = self.stm_recording
 
         self.speaker = Speaker()
-        t0_s = {'source': 'initial', 'target': 'ready'}
-        t1_s = {'trigger': 'speak', 'source': 'ready', 'target': 'speaking'}
-        t2_s = {'trigger': 'done', 'source': 'speaking', 'target': 'ready'}
+        t0_s = {'source': 'initial',                            'target': 'ready'}
+        t1_s = {'trigger': 'speak',     'source': 'ready',      'target': 'speaking'}
+        t2_s = {'trigger': 'done',      'source': 'speaking',   'target': 'ready'}
 
 
         s1_s = {'name': 'speaking', 'do': 'speak(*)', 'speak': 'defer'}

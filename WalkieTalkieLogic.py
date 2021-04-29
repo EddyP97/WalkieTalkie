@@ -131,7 +131,7 @@ class WalkieLogic:
         message = self.last_message_content
         AudioModule.process_audio(message)
         self.audioHelper.play_audio(AudioModule.FILENAME)
-        self.stm.send('message_played') #TODO Message is not yet completely played here
+        self.stm.send('message_played')
         
     
     def listen_stored(self):
@@ -141,7 +141,7 @@ class WalkieLogic:
         for msg in self.list_of_messages:
             self.audioHelper.play_audio_noStm(msg)
             os.remove(msg)
-            self.list_of_messages.remove(msg)
+        self.list_of_messages.clear()
         self.stm.send('playback_finished')
 
     

@@ -16,7 +16,7 @@ class CommandSenderComponent:
     """
     
     def __init__(self, walkieNumber):
-        self.MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/answer' + walkieNumber
+        self.MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer' + walkieNumber
         self.MQTT_TOPIC_WALKIE = 'ttm4115/team_15/walkie' + walkieNumber
 
         # get the logger object for the component
@@ -32,7 +32,7 @@ class CommandSenderComponent:
         self.mqtt_client.on_message = self.on_message
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_OUTPUT)
+        self.mqtt_client.subscribe(self.MQTT_TOPIC_COMMANDSENDER)
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
         self.audioHelper = AudioModule.AudioHelper()
@@ -87,14 +87,17 @@ class CommandSenderComponent:
             channel = title[-1]
             command = {"command": "chosen", "channel": channel}
             publish_command(command)
+        self.app.startFrame("LEFT", row=0, column=0)
         self.app.addButton('Select channel 1', on_button_pressed_channel)
         self.app.addButton('Select channel 2', on_button_pressed_channel)
         self.app.addButton('Select channel 3', on_button_pressed_channel)
+        self.app.stopFrame()
+        self.app.startFrame("RIGHT", row=0, column=1)
         self.app.addButton('Select channel 4', on_button_pressed_channel)
         self.app.addButton('Select channel 5', on_button_pressed_channel)
         self.app.addButton('Select channel 6', on_button_pressed_channel)
+        self.app.stopFrame()
         self.app.stopLabelFrame()
-
 
         self.app.startLabelFrame('Emergency Broadcast:')
         def on_button_pressed_emergency(title):
@@ -105,7 +108,6 @@ class CommandSenderComponent:
             publish_command(command)
         self.app.addButton('Send Emergency Broadcast', on_button_pressed_emergency)
         self.app.addButton('Abort', on_button_pressed_emergency_abort)
-
         self.app.stopLabelFrame()
 
         self.app.startLabelFrame('Stored messages:')
