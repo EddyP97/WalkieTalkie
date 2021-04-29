@@ -11,12 +11,10 @@ MQTT_PORT = 1883
 
 MQTT_TOPIC_OUTPUT = ''
 MQTT_TOPIC_INPUT = ''
-MQTT_TOPIC_COMMANDSENDER = 'ttm4175/team_15/answer_debug'
+MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer_debug'
 
 channel = ''
 state = 'idle'
-
-AUDIO_FILE_DIR = 'Strd_Msg'
 
 class WalkieLogic:
     """
@@ -48,9 +46,9 @@ class WalkieLogic:
         if walkienumber == "1": walkiesend = "2"
 
         # topics for communication
-        self.MQTT_TOPIC_INPUT = 'ttm4175/team_15/walkie' + walkienumber + '_debug'
-        self.MQTT_TOPIC_OUTPUT = 'ttm4175/team_15/walkie' + walkiesend + '_debug'
-        self.MQTT_TOPIC_COMMANDSENDER = 'ttm4175/team_15/answer_debug'
+        self.MQTT_TOPIC_INPUT = 'ttm4115/team_15/walkie' + walkienumber
+        self.MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/walkie' + walkiesend
+        self.MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer'
         
         # create a new MQTT client
         self._logger.debug('Connecting to MQTT broker {} at port {}'.format(MQTT_BROKER, MQTT_PORT))
@@ -67,7 +65,8 @@ class WalkieLogic:
         
         self.message_count = 0
         self.state = 'idle'
-        self.last_message_content = ''
+        self.last_message_content = b''
+        self.last_emergency_message = ''
         self.list_of_messages= []
 
         #Audio stuff
@@ -83,7 +82,7 @@ class WalkieLogic:
         self._logger.debug('MQTT connected to {}'.format(client))
         
     def store_message(self, message):
-        file_name = AUDIO_FILE_DIR + '\message_' + str(self.message_count) + ".wav"
+        file_name = 'message_' + str(self.message_count) + ".wav"
         
         AudioModule.process_audio(message, file_name)
         self.list_of_messages.append(file_name)
@@ -91,7 +90,7 @@ class WalkieLogic:
     
     def send_message(self, payload, channel):
         try:
-            topic = 'ttm4175/team_15/walkie' + channel + '_debug'
+            topic = 'ttm4115/team_15/walkie' + channel
             #payload = json.dumps(payload)
             self.mqtt_client.publish(topic, payload, qos = 2)
         except Exception as e:
@@ -100,7 +99,7 @@ class WalkieLogic:
     def playback_emergency(self):
         self.state = 'emergency_message_received'
         print('State walkie ' + self.name + ': emergency_message_received')
-        #TO DO Uli  
+        self.audioHelper.text_to_speech(self.last_emergency_message)
         self.stm.send('message_played')
         
 
@@ -141,12 +140,12 @@ class WalkieLogic:
     def listen_stored(self):
         self.state = 'playback_stored'
         print('State walkie ' + self.name + ': playback_stored')
-        path = '/Komsys-files/'
 
-        for msg in list_of_messages:
-            self.audioHelper.play_audio(msg)
-            os.remove(path+msg)
-            list_of_messages.remove(msg)
+        for msg in self.list_of_messages:
+            self.audioHelper.play_audio_noStm(msg)
+            os.remove(msg)
+            self.list_of_messages.remove(msg)
+        self.stm.send('playback_finished')
 
     
     def prompt_choose(self):
@@ -168,6 +167,13 @@ class WalkieLogic:
             self.publish_command(message)
         except Exception as e:
             print(e)
+        return None
+
+    def delete_messages(self):
+        for msg in self.list_of_messages:
+            print(msg)
+            os.remove(msg)
+        self.list_of_messages.clear()
         return None
     
     def on_message(self, client, userdata, msg):
@@ -202,6 +208,12 @@ class WalkieLogic:
                 try:
                     self.last_message_content = payload.get('message')
                     self.stm.send('message_received')
+                except Exception as err:
+                    self._logger.error('Invalid arguments to command. {}'.format(err))
+
+            elif command == 'delete_stored':
+                try:
+                    self.stm.send('delete_stored')
                 except Exception as err:
                     self._logger.error('Invalid arguments to command. {}'.format(err))
 
@@ -252,20 +264,19 @@ class WalkieLogic:
 
         elif self.state == 'playback_message':
             if self.check_emergency(payload):
-                self.store_message(self.last_message_content)
+                #self.store_message(self.last_message_content)
                 return
 
         elif self.state == 'message_received':
             if self.check_emergency(payload):
-                self.store_message(self.last_message_content)
+                #self.store_message(self.last_message_content)
                 return
 
             else:
                 print('Command in message is {}'.format(command))
                 if command == 'listen_later':
-                    self.store_message(self.last_message_content)
                     print('Message stored for later')
-                    self.stm.send('listen_later')
+                    self.stm.send('listen_later', args = [self.last_message_content])
                 
                 elif command == 'listen_to_message':
                     self.stm.send('listen_to_message')
@@ -282,6 +293,7 @@ class WalkieLogic:
         if command == 'emergency_received':
             try:
                 print(payload.get('message'))
+                self.last_emergency_message = payload.get('message')
                 self.stm.send('emergency_received')
                 return True
             except Exception as err:
@@ -290,7 +302,7 @@ class WalkieLogic:
         elif command == 'emergency_broadcast':
             try:
                 print("Emergency broadcast activated")
-                self.stm.send('emergency_broadcast')
+                self.stm.send('emergency_broadcast', args=[self.last_message_content])
                 return True
             except Exception as err:
                 self._logger.error('Invalid arguments to command. {}'.format(err))
@@ -308,42 +320,43 @@ class WalkieLogic:
         t3 = {'source': 'idle', 'target': 'choose_recipients',                          'trigger': 'send_message'}
         t4 = {'source': 'idle', 'target': 'emergency_broadcasting',                     'trigger': 'emergency_broadcast'}
         t5 = {'source': 'idle', 'target': 'emergency_message_received',                 'trigger': 'emergency_received'}
+        t6 = {'source': 'idle', 'target': 'idle',                                       'trigger': 'delete_stored',         'effect': 'delete_messages'}
         
         #from message received
-        t6 = {'source': 'message_received', 'target': 'idle',                           'trigger': 'listen_later',          'effect': 'store_message'}
-        t7 = {'source': 'message_received', 'target': 'playback_message',               'trigger': 'listen_to_message'}
-        t8 = {'source': 'message_received', 'target': 'emergency_broadcasting',         'trigger': 'emergency_broadcast',   'effect': 'store_message'}
-        t9 = {'source': 'message_received', 'target': 'emergency_message_received',     'trigger': 'emergency_received',    'effect': 'store_message'}
+        t7 = {'source': 'message_received', 'target': 'idle',                           'trigger': 'listen_later',          'effect': 'store_message(*)'}
+        t8 = {'source': 'message_received', 'target': 'playback_message',               'trigger': 'listen_to_message'}
+        t9 = {'source': 'message_received', 'target': 'emergency_broadcasting',         'trigger': 'emergency_broadcast',   'effect': 'store_message(*)'}
+        t10 = {'source': 'message_received', 'target': 'emergency_message_received',     'trigger': 'emergency_received',   'effect': 'store_message(*)'}
 
         #from playback_stored
-        t10 = {'source': 'playback_stored', 'target': 'idle',                           'trigger': 'playback_finished'}
-        t11 = {'source': 'playback_stored', 'target': 'emergency_broadcasting',         'trigger': 'emergency_broadcast'}
-        t12 = {'source': 'playback_stored', 'target': 'emergency_message_received',     'trigger': 'emergency_received'}
-        t13 = {'source': 'playback_stored', 'target': 'idle',                           'trigger': 'abort'}
+        t11 = {'source': 'playback_stored', 'target': 'idle',                           'trigger': 'playback_finished'}
+        t12 = {'source': 'playback_stored', 'target': 'emergency_broadcasting',         'trigger': 'emergency_broadcast'}
+        t13 = {'source': 'playback_stored', 'target': 'emergency_message_received',     'trigger': 'emergency_received'}
+        t14 = {'source': 'playback_stored', 'target': 'idle',                           'trigger': 'abort'}
         
         #from choose_recipients
-        t14 = {'source': 'choose_recipients', 'target': 'idle',                         'trigger': 'abort_choosing'}
-        t15 = {'source': 'choose_recipients', 'target': 'emergency_broadcasting',       'trigger': 'emergency_broadcast'}
-        t16 = {'source': 'choose_recipients', 'target': 'emergency_message_received',   'trigger': 'emergency_received'}
-        t17 = {'source': 'choose_recipients', 'target': 'record_message',               'trigger': 'chosen'}   
+        t15 = {'source': 'choose_recipients', 'target': 'idle',                         'trigger': 'abort_choosing'}
+        t16 = {'source': 'choose_recipients', 'target': 'emergency_broadcasting',       'trigger': 'emergency_broadcast'}
+        t17 = {'source': 'choose_recipients', 'target': 'emergency_message_received',   'trigger': 'emergency_received'}
+        t18 = {'source': 'choose_recipients', 'target': 'record_message',               'trigger': 'chosen'}   
 
         # from playback_message
-        t18 = {'source': 'playback_message', 'target': 'emergency_broadcasting',        'trigger': 'emergency_broadcast',   'effect': 'store_message'}
-        t19 = {'source': 'playback_message', 'target': 'emergency_message_received',    'trigger': 'emergency_received',    'effect': 'store_message'}
-        t20 = {'source': 'playback_message', 'target': 'idle',                          'trigger': 'message_played'}
+        t19 = {'source': 'playback_message', 'target': 'emergency_broadcasting',        'trigger': 'emergency_broadcast',   'effect': 'store_message(*)'}
+        t20 = {'source': 'playback_message', 'target': 'emergency_message_received',    'trigger': 'emergency_received',    'effect': 'store_message(*)'}
+        t21 = {'source': 'playback_message', 'target': 'idle',                          'trigger': 'message_played'}
         
         #from emergency_broadcasting 
-        t21 = {'source': 'emergency_broadcasting', 'target': 'idle',                       'trigger': 'abort',               'effect': 'stop_timer("t")'}
-        t22 = {'source': 'emergency_broadcasting', 'target': 'idle',                       'trigger': 't',                   'effect': 'send_emergency; stop_timer("t")'}
+        t22 = {'source': 'emergency_broadcasting', 'target': 'idle',                    'trigger': 'abort',               'effect': 'stop_timer("t")'}
+        t23 = {'source': 'emergency_broadcasting', 'target': 'idle',                    'trigger': 't',                   'effect': 'send_emergency; stop_timer("t")'}
         
         #from emergency_message_received
-        t23 = {'source': 'emergency_message_received', 'target': 'idle',                'trigger': 'message_played'}
+        t24 = {'source': 'emergency_message_received', 'target': 'idle',                'trigger': 'message_played'}
 
         #from record_message 
-        t24 = {'source': 'record_message', 'target': 'idle',                            'trigger': 'abort_sending'}
-        t25 = {'source': 'record_message', 'target': 'idle',                            'trigger': 'done_recording'}
-        t26 = {'source': 'record_message', 'target': 'emergency_broadcasting',          'trigger': 'emergency_broadcast'}
-        t27 = {'source': 'record_message', 'target': 'emergency_message_received',      'trigger': 'emergency_received'}
+        t25 = {'source': 'record_message', 'target': 'idle',                            'trigger': 'abort_sending'}
+        t26 = {'source': 'record_message', 'target': 'idle',                            'trigger': 'done_recording'}
+        t27 = {'source': 'record_message', 'target': 'emergency_broadcasting',          'trigger': 'emergency_broadcast'}
+        t28 = {'source': 'record_message', 'target': 'emergency_message_received',      'trigger': 'emergency_received'}
 
         #states 
         idle = {'name': 'idle',
@@ -373,7 +386,7 @@ class WalkieLogic:
                         'message_received': 'defer'}
         
         walkie_stm = stmpy.Machine(name=name, transitions=[t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19,
-        t20, t21, t22, t23, t24, t25, t26, t27], obj=walkie_logic, states=[idle, emergency_received, emergency_broadcasting,
+        t20, t21, t22, t23, t24, t25, t26, t27, t28], obj=walkie_logic, states=[idle, emergency_received, emergency_broadcasting,
         message_received, playback_message, playback_stored, choose_recipients, record_message])
         walkie_logic.stm = walkie_stm
         return walkie_stm
