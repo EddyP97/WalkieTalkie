@@ -4,17 +4,21 @@ import stmpy
 import logging
 from threading import Thread
 
+walkieNumber = ''
+
 def main():
+    walkieNumber = input('What is your worker number?')
     # we start the stmpy driver and add 2 walkies
     stm_driver = stmpy.Driver()
     print(1)
-    stm_driver.add_machine(WalkieLogic.create_machine(name = "1"))
-    stm_driver.add_machine(WalkieLogic.create_machine(name = "2"))
+    stm_driver.add_machine(WalkieLogic.create_machine(name = walkieNumber))
+    #add the line below
+    #stm_driver.add_machine(WalkieLogic.create_machine(name = "2"))
     print(2)
 
     stm_driver.start(keep_active=True)
 
-    command = CommandSender.CommandSenderComponent()
+    command = CommandSender.CommandSenderComponent(walkieNumber)
 
 def stop():
     # stop the state machine driver
