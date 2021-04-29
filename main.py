@@ -10,11 +10,9 @@ def main():
     walkieNumber = input('What is your worker number?')
     # we start the stmpy driver and add 2 walkies
     stm_driver = stmpy.Driver()
-    print(1)
     stm_driver.add_machine(WalkieLogic.create_machine(name = walkieNumber))
-    #add the line below
+    #add the line below to create another walkie on one computer
     #stm_driver.add_machine(WalkieLogic.create_machine(name = "2"))
-    print(2)
 
     stm_driver.start(keep_active=True)
 
