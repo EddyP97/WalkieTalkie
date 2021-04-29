@@ -5,13 +5,14 @@ import json
 import os
 import AudioModule
 import time
+
 # MQTT broker address
 MQTT_BROKER = 'mqtt.item.ntnu.no'
 MQTT_PORT = 1883
 
-MQTT_TOPIC_OUTPUT = ''
-MQTT_TOPIC_INPUT = ''
-MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer_debug'
+MQTT_TOPIC_SEND = ''
+MQTT_TOPIC_RECEIVE = ''
+MQTT_TOPIC_COMMANDSENDER = ''
 
 channel = ''
 state = 'idle'
@@ -41,14 +42,14 @@ class WalkieLogic:
         self.name = name
 
         # broker and port
-        walkiesend = "1"
-        walkienumber = name
-        if walkienumber == "1": walkiesend = "2"
+        thisWalkie = "1"
+        otherWalkie = name
+        if thisWalkie == "1": otherWalkie = "2"
 
         # topics for communication
-        self.MQTT_TOPIC_INPUT = 'ttm4115/team_15/walkie' + walkienumber
-        self.MQTT_TOPIC_OUTPUT = 'ttm4115/team_15/walkie' + walkiesend
-        self.MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer'
+        self.MQTT_TOPIC_RECEIVE = 'ttm4115/team_15/walkie' + thisWalkie
+        self.MQTT_TOPIC_SEND = 'ttm4115/team_15/walkie' + otherWalkie
+        self.MQTT_TOPIC_COMMANDSENDER = 'ttm4115/team_15/answer' + name
         
         # create a new MQTT client
         self._logger.debug('Connecting to MQTT broker {} at port {}'.format(MQTT_BROKER, MQTT_PORT))
@@ -59,7 +60,7 @@ class WalkieLogic:
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
         # subscribe to proper topic(s) of your choice
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_INPUT)
+        self.mqtt_client.subscribe(self.MQTT_TOPIC_RECEIVE)
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
         
@@ -118,7 +119,7 @@ class WalkieLogic:
 
         payload = json.dumps(message)
         self._logger.info(message)
-        self.mqtt_client.publish(self.MQTT_TOPIC_OUTPUT, payload=payload, qos=2)
+        self.mqtt_client.publish(self.MQTT_TOPIC_SEND, payload=payload, qos=2)
         
 
     def prompt_listen(self):
@@ -152,7 +153,7 @@ class WalkieLogic:
         self.state = 'choose_recipients'
         print('State walkie ' + self.name + ': choose_recipients')
         try:
-            message = {'command': 'text', 'message': 'What recipient(s) do you want to send to?'}
+            message = {'command': 'text', 'message': 'What channel do you want to send to?'}
             self.publish_command(message)
         except Exception as e:
             print(e)
@@ -186,7 +187,6 @@ class WalkieLogic:
             #self._logger.error('Message sent to topic {} had no valid JSON. Message ignored. {}'.format(msg.topic, err))
             #return
         command = payload.get('command')
-        
         
         if self.state == 'idle':
 
@@ -228,11 +228,15 @@ class WalkieLogic:
                 print("Non chosen, aborted")
                 self.stm.send('abort_choosing')
                 
-            else:
+            elif command == 'chosen':
                 self.channel = payload.get('channel')
                 print('Channel chosen: ' + self.channel)
                 self._logger.debug('Channel is {}'.format(command))
                 self.stm.send('chosen')
+            
+            else:
+                self._logger.error('Unknown command {}. Message ignored.'.format(command))
+            return None
         
 
         elif self.state == 'record_message':
@@ -244,6 +248,7 @@ class WalkieLogic:
 
             elif command == 'start_recording':
                 self.audioHelper.start_recording()
+
             elif command == 'stop_recording':
                 print("Stopping the recording from main logic")
                 self.audioHelper.stop_recording()
@@ -254,6 +259,10 @@ class WalkieLogic:
                 self.stm.send('done_recording')
                 return
 
+            else:
+                self._logger.error('Unknown command {}. Message ignored.'.format(command))
+            return None
+
         elif self.state == 'playback_stored':
             if self.check_emergency(payload): return 
 
@@ -262,10 +271,18 @@ class WalkieLogic:
                 self.audioHelper.stop_audio()
                 self.stm.send('abort')
 
+            else:
+                self._logger.error('Unknown command {}. Message ignored.'.format(command))
+            return None
+
         elif self.state == 'playback_message':
             if self.check_emergency(payload):
                 #self.store_message(self.last_message_content)
                 return
+            
+            else:
+                self._logger.error('Unknown command {}. Message ignored.'.format(command))
+            return None
 
         elif self.state == 'message_received':
             if self.check_emergency(payload):
@@ -280,11 +297,18 @@ class WalkieLogic:
                 
                 elif command == 'listen_to_message':
                     self.stm.send('listen_to_message')
+                
+                else:
+                    self._logger.error('Unknown command {}. Message ignored.'.format(command))
+                return None
         
         elif self.state == 'emergency_broadcasting':
             if command == 'abort':
                 print("Emergency broadcast aborted")
                 self.stm.send('abort')
+            else:
+                self._logger.error('Unknown command {}. Message ignored.'.format(command))
+            return None
         
     
     def check_emergency(self, payload):
