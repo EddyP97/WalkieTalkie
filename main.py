@@ -3,15 +3,8 @@ import CommandSender
 import stmpy
 import logging
 from threading import Thread
-import json
-
-
 
 def main():
-    """
-    Start the component.
-    """
-
     # we start the stmpy driver and add 2 walkies
     stm_driver = stmpy.Driver()
     print(1)
@@ -24,12 +17,8 @@ def main():
     command = CommandSender.CommandSenderComponent()
 
 def stop():
-    # stop the state machine Driver
+    # stop the state machine driver
     stm_driver.stop()
-
-
-#if __name__ == "__main__":
-#    main()
 
 # logging.DEBUG: Most fine-grained logging, printing everything
 # logging.INFO:  Only the most important informational log items
@@ -45,5 +34,4 @@ formatter = logging.Formatter('%(asctime)s - %(name)-12s - %(levelname)-8s - %(m
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-
-m = main()
+main()
