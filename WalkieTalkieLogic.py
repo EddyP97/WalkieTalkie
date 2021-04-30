@@ -416,4 +416,3 @@ class WalkieLogic:
         walkie_logic.stm = walkie_stm
         return walkie_stm
 
-    
