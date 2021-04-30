@@ -102,6 +102,7 @@ class Player:
 class Speaker:
     def __init__(self):
         self.engine = pyttsx3.init()
+        engine = pyttsx3.init()
 
     def speak(self, text):
         self.engine.say(text)
@@ -109,19 +110,6 @@ class Speaker:
 
 class AudioHelper:
     def __init__(self):
-        
-        self.player = Player()
-                
-        t0_p = {'source': 'initial',                            'target': 'ready'}
-        t1_p = {'trigger': 'start',     'source': 'ready',      'target': 'playing'}
-        t2_p = {'trigger': 'done',      'source': 'playing',    'target': 'ready'}
-        t3_p = {'trigger' : 'stop',     'source' : 'playing',   'target' : 'ready',     'effect' : 'stop_playing'}
-        
-        s_ready = {'name': 'ready'}
-        s_playing = {'name': 'playing', 'do': 'play(*)'}
-
-        self.stm_player = Machine(name='stm_player', transitions=[t0_p, t1_p, t2_p, t3_p], states=[s_playing, s_ready], obj=self.player)
-        self.player.stm = self.stm_player
 
 
         self.recorder = Recorder()
@@ -147,13 +135,9 @@ class AudioHelper:
 
         self.driver = Driver()
         self.driver.add_machine(self.stm_recording)
-        self.driver.add_machine(self.stm_player)
         self.driver.add_machine(self.stm_speaker)
         self.driver.start()
         print('Audio Module ready')
-    
-    def play_audio(self, filename):
-        self.stm_player.send('start', args = [filename])
 
     def play_audio_noStm(self, filename): 
         # Open the sound file 
@@ -179,10 +163,6 @@ class AudioHelper:
         # Close and terminate the stream
         stream.close()
         p.terminate()
-
-    def stop_audio(self):
-        self.stm_player.send('stop')
-
     
     def start_recording(self):
         #print("driver started")
