@@ -55,7 +55,7 @@ class CommandSenderComponent:
         command = payload.get('command')
         if command == 'text':
             print(payload.get('message'))
-            self.audioHelper.text_to_speech(payload.get('message')) #implementer text-to-speach
+            self.audioHelper.text_to_speech(payload.get('message')) #implemented text-to-speach
 
     
     def create_gui(self):

@@ -291,7 +291,9 @@ class WalkieLogic:
             else:
                 print('Command in message is {}'.format(command))
                 if command == 'listen_later':
+                    message = {'command': 'text', 'message': 'Message stored for later'}
                     print('Message stored for later')
+                    self.publish_command(message)
                     self.stm.send('listen_later', args = [self.last_message_content])
                 
                 elif command == 'listen_to_message':
